@@ -1,5 +1,8 @@
 name: "Pycord Library Release"
 description: "Release a new package version for pycord"
+branding:
+  color: "green"
+  icon: "upload-cloud"
 inputs:
   repository:
     description: "The repository"
