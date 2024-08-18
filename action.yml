@@ -55,6 +55,10 @@ runs:
         cache: "pip"
         cache-dependency-path: ${{ inputs.release-requirements }}
 
+    - name: "Echo dir"
+      shell: bash
+      run: ls -la
+
     - name: "Install Release Dependencies"
       env:
         REQ_FILE: ${{ inputs.release-requirements }}
