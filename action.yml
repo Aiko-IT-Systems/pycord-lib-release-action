@@ -20,6 +20,10 @@ inputs:
     description: "The PyPi token"
     required: false
     default: "__token__"
+  pypi-package:
+    description: "The PyPi package"
+    required: false
+    default: "py-cord"
   pypi-token:
     description: "The PyPi token"
     required: true
@@ -135,8 +139,8 @@ runs:
     - name: "Publish package distributions to PyPI"
       uses: pypa/gh-action-pypi-publish@v1.9.0
       env:
-        name: pypi
-        url: https://pypi.org/p/pycord
+        name: "pypi"
+        url: "https://pypi.org/p/${{ inputs.pypi-package }}"
       with:
         password: ${{ inputs.pypi-token }}
         user: ${{ inputs.pypi-username }}
