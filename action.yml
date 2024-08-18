@@ -44,11 +44,12 @@ inputs:
 outputs:
   gh-release:
     description: "The GitHub Release url"
-    value: ${{ steps.gh-release.outputs.url }}
+    value: ${{ runs.steps.gh-release.outputs.url }}
 runs:
   using: "composite"
   steps:
     - name: "Setup Python"
+      id: python-setup
       uses: actions/setup-python@v5
       with:
         python-version: ${{ inputs.python-version }}
@@ -56,6 +57,7 @@ runs:
         cache-dependency-path: ${{ inputs.release-requirements }}
 
     - name: "Install Release Dependencies"
+      id: python-install
       env:
         REQ_FILE: ${{ inputs.release-requirements }}
       shell: bash
@@ -65,6 +67,7 @@ runs:
         pip install -r $REQ_FILE
 
     - name: "Prepare and Update CHANGELOG.md"
+      id: changelog-update
       shell: bash
       env:
         VERSION: ${{ inputs.version }}
@@ -82,7 +85,8 @@ runs:
         git add CHANGELOG.md
         git commit -m "chore(release): update CHANGELOG.md for version $VERSION"
 
-    - name: "Commit and Push Changelog to Master"
+    - name: "Commit and Push Changelog to ${{ inputs.ref }}"
+      id: commit-main-branch
       shell: bash
       env:
         VERSION: ${{ inputs.version }}
@@ -94,6 +98,7 @@ runs:
         git push origin HEAD:$BRANCH
 
     - name: "Push Changelog to Version Branch"
+      id: commit-version-branch
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}
@@ -104,6 +109,7 @@ runs:
         git push origin HEAD:$VERSION_BRANCH
 
     - name: "Create Git Tag"
+      id: create-git-tag
       shell: bash
       env:
         VERSION: ${{ inputs.version }}
@@ -112,13 +118,14 @@ runs:
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
         git tag v$VERSION -m "Release version $VERSION"
-#        git push origin v$VERSION
 
     - name: "Verify Version"
+      id: python-version-verify
       shell: bash
       run: python -m setuptools_scm
 
     - name: "Build Package"
+      id: python-version-build
       shell: bash
       run: |
         python3 -m build --sdist
@@ -126,6 +133,7 @@ runs:
 
     - name: "Create GitHub Release"
       uses: softprops/action-gh-release@v2.0.8
+      id: gh-release
       with:
         tag_name: "v${{ inputs.version }}"
         name: "v${{ inputs.version }}"
