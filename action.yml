@@ -61,7 +61,7 @@ runs:
       shell: bash
       run: |
         python -m pip install --upgrade pip
-        pip install setuptools setuptools_scm twine
+        pip install setuptools setuptools_scm twine build
         pip install -r $REQ_FILE
 
     - name: "Prepare and Update CHANGELOG.md"
