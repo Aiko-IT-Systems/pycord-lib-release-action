@@ -1,0 +1,138 @@
+name: "Pycord Library Release"
+description: "Release a new package version for pycord"
+inputs:
+  repository:
+    description: "The repository"
+    required: false
+    default: "Pycord-Development/pycord"
+  ref:
+    description: "The ref"
+    required: false
+    default: "master"
+  python-version:
+    description: "The python-version"
+    required: true
+    default: "3.12"
+  github-token:
+    description: "The GitHub token"
+    required: true
+  pypi-username:
+    description: "The PyPi token"
+    required: false
+    default: "__token__"
+  pypi-token:
+    description: "The PyPi token"
+    required: true
+  release-requirements:
+    description: "The release requirements file"
+    required: false
+    default: "requirements/_release.txt"
+  version-branch-name:
+    description: "The version branch name"
+    required: true
+  version:
+    description: "The version to release"
+    required: true
+  is-rc:
+    description: "Whether to release as rc"
+    required: false
+    default: "false"
+outputs:
+  gh-release:
+    description: "The GitHub Release url"
+    value: ${{ steps.gh-release.outputs.url }}
+runs:
+  using: "composite"
+  steps:
+    - name: "Setup Python"
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python_version }}
+        cache: "pip"
+        cache-dependency-path: ${{ inputs.release-requirements }}
+
+    - name: "Install Release Dependencies"
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r ${{ inputs.release-requirements }}
+
+    - name: "Prepare and Update CHANGELOG.md"
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+        REPOSITORY: ${{ inputs.repository }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: |
+        DATE=$(date +'%Y-%m-%d')
+        sed -i "s/## \[Unreleased\]/## [$VERSION] - $DATE/" CHANGELOG.md
+        sed -i "0,/## \[$VERSION\]/ s|## \[$VERSION\]|## [Unreleased]\n\n### Added\n\n### Changed\n\n### Fixed\n\n### Removed\n\n$&|" CHANGELOG.md
+        sed -i "s|\[Unreleased\]:.*|[Unreleased]: https://github.com/$REPOSITORY/compare/v$VERSION...HEAD\n[$VERSION]: https://github.com/$REPOSITORY/compare/v$(git describe --tags --abbrev=0 @^)...v$VERSION|" CHANGELOG.md
+        echo "[Unreleased]: https://github.com/$REPOSITORY/compare/v$VERSION...HEAD" >> CHANGELOG.md
+        git add CHANGELOG.md
+        git commit -m "chore(release): update CHANGELOG.md for version $VERSION"
+
+    - name: "Commit and Push Changelog to Master"
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: |
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        git add CHANGELOG.md
+        git commit -m "chore(release): update CHANGELOG.md for version $VERSION"
+        git push origin HEAD:master
+
+    - name: "Push Changelog to Version Branch"
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: |
+        git push origin HEAD:${{ inputs.version-branch-name }}
+
+    - name: "Create Git Tag"
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: |
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        git tag -s v$VERSION -m "Release version $VERSION"
+        git push origin v$VERSION
+
+    - name: "Verify Version"
+      shell: bash
+      run: python -m setuptools_scm
+
+    - name: "Build Package"
+      shell: bash
+      run: |
+        python3 -m build --sdist
+        python3 -m build --wheel
+
+    - name: "Create GitHub Release"
+      uses: softprops/action-gh-release@v2.0.8
+      with:
+        tag_name: "v${{ inputs.version }}"
+        name: "v${{ inputs.version }}"
+        generate_release_notes: true
+        draft: false
+        prerelease: ${{ inputs.is-rc == 'true' }}
+        files: |
+          dist/*.whl
+          dist/*.tar.gz
+        token: ${{ inputs.github-token }}
+        make_latest: true
+        repository: ${{ inputs.repository }}
+        target_commitish: ${{ inputs.ref }}
+
+    - name: "Publish package distributions to PyPI"
+      uses: pypa/gh-action-pypi-publish@v1.9.0
+      env:
+        name: pypi
+        url: https://pypi.org/p/pycord
+      with:
+        password: ${{ inputs.pypi-token }}
+        user: ${{ inputs.pypi-username }}
