@@ -52,10 +52,12 @@ runs:
         cache-dependency-path: ${{ inputs.release-requirements }}
 
     - name: "Install Release Dependencies"
+      env:
+        REQ_FILE: ${{ inputs.release-requirements }}
       shell: bash
       run: |
         python -m pip install --upgrade pip
-        pip install -r ${{ inputs.release-requirements }}
+        pip install -r $REQ_FILE
 
     - name: "Prepare and Update CHANGELOG.md"
       shell: bash
@@ -77,19 +79,21 @@ runs:
       env:
         VERSION: ${{ inputs.version }}
         GITHUB_TOKEN: ${{ inputs.github-token }}
+        BRANCH: ${{ inputs.ref }}
       run: |
         git config user.name "GitHub Actions"
         git config user.email "actions@github.com"
         git add CHANGELOG.md
         git commit -m "chore(release): update CHANGELOG.md for version $VERSION"
-        git push origin HEAD:master
+        git push origin HEAD:$BRANCH
 
     - name: "Push Changelog to Version Branch"
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}
+        VERSION_BRANCH: ${{ inputs.ref }}
       run: |
-        git push origin HEAD:${{ inputs.version-branch-name }}
+        git push origin HEAD:$VERSION_BRANCH
 
     - name: "Create Git Tag"
       shell: bash
