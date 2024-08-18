@@ -55,10 +55,6 @@ runs:
         cache: "pip"
         cache-dependency-path: ${{ inputs.release-requirements }}
 
-    - name: "Echo dir"
-      shell: bash
-      run: ls -la
-
     - name: "Install Release Dependencies"
       env:
         REQ_FILE: ${{ inputs.release-requirements }}
@@ -74,6 +70,8 @@ runs:
         REPOSITORY: ${{ inputs.repository }}
         GITHUB_TOKEN: ${{ inputs.github-token }}
       run: |
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
         DATE=$(date +'%Y-%m-%d')
         sed -i "s/## \[Unreleased\]/## [$VERSION] - $DATE/" CHANGELOG.md
         sed -i "0,/## \[$VERSION\]/ s|## \[$VERSION\]|## [Unreleased]\n\n### Added\n\n### Changed\n\n### Fixed\n\n### Removed\n\n$&|" CHANGELOG.md
