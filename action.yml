@@ -74,7 +74,7 @@ runs:
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
         DATE=$(date +'%Y-%m-%d')
-        sed -i '/These changes are available on the `.*` branch, but have not yet been released\./d'
+        sed -i "/These changes are available on the `.*` branch, but have not yet been released\./d" CHANGELOG.md
         sed -i "s/## \[Unreleased\]/## [$VERSION] - $DATE/" CHANGELOG.md
         sed -i "0,/## \[$VERSION\]/ s|## \[$VERSION\]|## [Unreleased]\n\nThese changes are available on the `$BRANCH` branch, but have not yet been released.\n\n### Added\n\n### Changed\n\n### Fixed\n\n### Removed\n\n&|" CHANGELOG.md
         sed -i "s|\[unreleased\]:.*|[unreleased]: https://github.com/$REPOSITORY/compare/v$VERSION...HEAD\n[$VERSION]: https://github.com/$REPOSITORY/compare/$(git describe --tags --abbrev=0 @^)...v$VERSION|" CHANGELOG.md
